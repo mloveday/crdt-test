@@ -23,13 +23,11 @@ type DocType = { text: string };
 const CrdtTestComponent = () => {
   const [doc, setDoc] = React.useState(Automerge.init<DocType>());
   const [localText, setLocalText] = useState('');
-  console.log(doc.text);
 
   const handleSyncResponse = (r: SyncResponse) => {
     const parsedDoc = Automerge.load<DocType>(normalizeUint8Array(r.doc));
     const final = Automerge.merge(Automerge.clone(doc), parsedDoc);
     if (r.changes !== undefined) {
-      console.log(r.changes);
       const [finalWithMerge] = Automerge.applyChanges(Automerge.clone(final), r.changes.map(normalizeUint8Array));
       setDoc(finalWithMerge);
     } else {
@@ -44,6 +42,12 @@ const CrdtTestComponent = () => {
       user: 'some-user',
     })).then(handleSyncResponse);
   }, []);
+
+  useEffect(() => {
+    if (doc.text !== undefined) {
+      setLocalText(doc.text);
+    }
+  }, [doc]);
 
   const onChange: React.ChangeEventHandler<HTMLInputElement> = (ev) => {
     setLocalText(ev.target.value);
@@ -68,7 +72,9 @@ const CrdtTestComponent = () => {
         {JSON.stringify(doc)}
       </p>
       <h2>History</h2>
-      {Automerge.getHistory(doc).map((change) => <p>{JSON.stringify(change.snapshot)}</p>)}
+      {Automerge.getHistory(doc).map((change) => <p key={change.change.hash}>
+        {change.change.startOp}: {JSON.stringify(change.snapshot)}
+      </p>)}
     </div>
   );
 };
